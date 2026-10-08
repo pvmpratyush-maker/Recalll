@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Revision">
+<meta name="theme-color" content="#000000">
+<title>Revision Planner</title>
+<style>
+:root{
+  --text:#fff; --muted:#94A3B8; --accent:#3B82F6; --green:#34D399; --red:#F87171; --blue:#60A5FA;
+  --stroke:rgba(59,130,246,.31);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 12%, rgba(29,78,216,.33), transparent 380px),
+    radial-gradient(circle at 92% 88%, rgba(3,105,161,.33), transparent 360px),
+    linear-gradient(135deg,#000,#020617,#000);
+  background-attachment:fixed;
+  background-color:#000;
+}
+#app{
+  height:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 16px calc(env(safe-area-inset-bottom,0px) + 10px);
+}
+h1{margin:0;font-size:28px;font-weight:800}
+#sub{color:var(--muted);font-size:13px;margin-top:2px}
+#main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 12px;scrollbar-width:none}
+#main::-webkit-scrollbar{display:none}
+
+.btn,.tab,.tbtn{font-family:inherit;color:#fff;cursor:pointer}
+.btn{
+  border:1px solid rgba(255,255,255,.38);
+  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+  border-radius:22px;padding:13px 10px;font-size:15px;font-weight:700;
+}
+.btn.accent{background:linear-gradient(180deg,rgba(59,130,246,.86),rgba(59,130,246,.47));border-color:rgba(255,255,255,.6)}
+.btn.green{background:linear-gradient(180deg,rgba(16,185,129,.86),rgba(16,185,129,.47));border-color:rgba(255,255,255,.6)}
+.btn.red{background:linear-gradient(180deg,rgba(239,68,68,.86),rgba(239,68,68,.47));border-color:rgba(255,255,255,.6)}
+.btn.sm{padding:7px 13px;font-size:12.5px;border-radius:16px;white-space:nowrap}
+.row{display:flex;gap:10px}
+.row>.btn{flex:1}
+.stack{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+
+.card{
+  margin-top:14px;padding:12px 18px 14px;border-radius:22px;
+  background:linear-gradient(135deg,#1E293B,#0F172A);
+  border:1px solid var(--stroke);
+  box-shadow:0 5px 0 #000,0 12px 22px rgba(0,0,0,.55);
+}
+.card.open{padding:16px 18px 20px}
+.head{display:flex;align-items:center;gap:10px;cursor:pointer}
+.dot{width:11px;height:11px;border-radius:50%;flex:none}
+.grow{flex:1;min-width:0}
+.tname{font-size:19px;font-weight:800;overflow-wrap:anywhere}
+.small{font-size:12px;color:var(--muted)}
+.rev{display:flex;align-items:center;gap:6px;padding:4px 0}
+.rev .lbl{flex:1;font-size:14px;overflow-wrap:anywhere}
+.rev.done .lbl{color:var(--green);text-decoration:line-through}
+.rev.over .lbl{color:var(--red)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+.item{
+  display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 10px 12px 14px;border-radius:18px;
+  background:linear-gradient(135deg,#1E293B,#0F172A);border:1px solid var(--stroke);
+}
+.item.done .ititle{text-decoration:line-through;color:var(--muted)}
+.ititle{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.isub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.isub.today{color:var(--blue)} .isub.over{color:var(--red)} .isub.ok{color:var(--green)}
+.group{margin:16px 2px 0;font-size:13px;font-weight:700;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:60px 10px 0;line-height:1.6}
+
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.cal-head .title{flex:1;text-align:center;font-size:19px;font-weight:800}
+.cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-week div{text-align:center;color:var(--muted);font-size:12px;font-weight:700;padding:4px 0}
+.cell{
+  min-height:70px;border-radius:8px;padding:3px 2px 2px;overflow:hidden;
+  background:rgba(30,41,59,.1);border:1px solid rgba(255,255,255,.15);
+}
+.cell.out{background:rgba(0,0,0,.04);border-color:rgba(255,255,255,.08)}
+.cell.today{border-color:var(--accent)}
+.cell .n{width:22px;height:22px;margin:0 auto;border-radius:50%;text-align:center;line-height:22px;font-size:11px;font-weight:700;color:#E2E8F0}
+.cell.today .n{background:linear-gradient(135deg,#3B82F6,#1D4ED8);color:#fff}
+.chip{margin-top:2px;padding:1px 4px;border-radius:5px;font-size:9px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.done{text-decoration:line-through}
+.more{font-size:9px;color:var(--muted);padding:1px 2px}
+
+nav{
+  display:flex;gap:4px;padding:6px;border-radius:30px;margin-top:6px;
+  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.38);
+}
+.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:11px 4px;border-radius:24px;font-size:15px;font-weight:700}
+.tab.on{color:#fff;background:linear-gradient(180deg,rgba(59,130,246,.86),rgba(59,130,246,.47));border:1px solid rgba(255,255,255,.6)}
+
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.dlg{width:100%;max-width:420px;max-height:88%;overflow-y:auto;border-radius:26px;padding:20px 22px 12px;background:rgba(9,13,22,.95);border:1px solid var(--stroke)}
+.dlg h3{margin:0 0 10px;font-size:19px}
+.dlg label{display:block;font-weight:700;font-size:14px;margin:10px 0 4px}
+.dlg input[type=text],.dlg input[type=password],.dlg input[type=date],.dlg input[type=time],.dlg input[type=datetime-local]{
+  width:100%;font-size:16px;font-family:inherit;color:#fff;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 12px;color-scheme:dark;
+}
+.dlg .chk{display:flex;align-items:center;gap:10px;font-weight:500;margin-top:14px}
+.dlg .chk input{width:20px;height:20px}
+.hint{color:var(--muted);font-size:12px;line-height:1.45;margin:6px 0 0}
+.dbtns{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;margin-top:12px}
+.tbtn{background:transparent;border:0;color:var(--blue);font-size:15px;font-weight:700;padding:10px 12px}
+.drow{display:flex;align-items:center;gap:8px;padding:5px 0}
+.drow .lbl{flex:1;font-size:15px;overflow-wrap:anywhere}
+.drow.done .lbl{color:var(--green);text-decoration:line-through}
+
+#toast{
+  position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);transform:translateX(-50%);
+  max-width:90%;padding:10px 16px;border-radius:16px;background:rgba(30,41,59,.97);border:1px solid var(--stroke);
+  font-size:14px;z-index:20;display:none;text-align:center
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Revision Planner</h1>
+  <div id="sub"></div>
+  <div id="main"></div>
+  <nav>
+    <button class="tab" data-a="tab" data-tab="today">Today</button>
+    <button class="tab" data-a="tab" data-tab="topics">Topics</button>
+    <button class="tab" data-a="tab" data-tab="cal">Calendar</button>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  var c = document.createElement('canvas'); c.width = c.height = 180;
+  var x = c.getContext('2d');
+  var g = x.createLinearGradient(0, 0, 180, 180);
+  g.addColorStop(0, '#1E293B'); g.addColorStop(1, '#000');
+  x.fillStyle = g; x.fillRect(0, 0, 180, 180);
+  x.fillStyle = '#3B82F6'; x.beginPath(); x.arc(90, 90, 52, 0, 7); x.fill();
+  x.strokeStyle = '#fff'; x.lineWidth = 12; x.lineCap = 'round'; x.lineJoin = 'round';
+  x.beginPath(); x.moveTo(66, 92); x.lineTo(84, 110); x.lineTo(116, 72); x.stroke();
+  var l = document.createElement('link'); l.rel = 'apple-touch-icon'; l.href = c.toDataURL('image/png');
+  document.head.appendChild(l);
+})();
+
+var PAL = ['#3B82F6', '#EF4444', '#10B981', '#06B6D4', '#F59E0B', '#6366F1', '#38BDF8', '#2563EB'];
+var KEY = 'revise_web_v1';
+var FILE = 'revision_data.json';
+
+function defState() {
+  return { topics: [], next_id: 1, last_modified: 0, token: '', gist: '',
+    plan: { saved: false, days: '1,3,7,14,30', until: 0, hour: 9, minute: 0, auto_new: false } };
+}
+function loadState() {
+  try {
+    var r = JSON.parse(localStorage.getItem(KEY));
+    if (r && r.topics) { var d = defState(); for (var k in r) d[k] = r[k]; return d; }
+  } catch (e) {}
+  return defState();
+}
+var S = loadState();
+var tab = 'today', lastDay = 0;
+var now0 = new Date(); var calY = now0.getFullYear(), calM = now0.getMonth();
+
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function col(t) { return PAL[t.id % PAL.length]; }
+function nextId() { return S.next_id++; }
+function findTopic(id) { return S.topics.filter(function (t) { return t.id === id; })[0]; }
+function persist(touch) {
+  if (touch) S.last_modified = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (touch) uploadQuiet();
+}
+function toast(msg) {
+  var t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(function () { t.style.display = 'none'; }, 2600);
+}
+
+/* ---------- dates ---------- */
+function startOfDay(ms) { var d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function endOfDay(ms) { var d = new Date(ms); d.setHours(23, 59, 59, 0); return d.getTime(); }
+function fmtFull(ms) {
+  return new Date(ms).toLocaleString(undefined, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function fmtTime(ms) { return new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }); }
+function fmtShort(ms) { return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function toDateInput(ms) { var d = new Date(ms); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function toDtInput(ms) { return toDateInput(ms) + 'T' + pad(new Date(ms).getHours()) + ':' + pad(new Date(ms).getMinutes()); }
+function fromDateInput(v) { var p = v.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).getTime(); }
+function untilMs() { return S.plan.until || (Date.now() + 30 * 86400000); }
+
+/* ---------- auto plan ---------- */
+function parseDays(s) {
+  return s.split(',').map(function (x) { return parseInt(x.trim(), 10); }).filter(function (n) { return n > 0; });
+}
+function dayAt(d, h, m) { var c = new Date(); c.setDate(c.getDate() + d); c.setHours(h, m, 0, 0); return c.getTime(); }
+function planTimes(daysText, until, h, m) {
+  var nums = parseDays(daysText); if (!nums.length) return [];
+  var end = endOfDay(until), res = [], ms;
+  if (nums.length === 1) {
+    var d = nums[0];
+    while (res.length < 100) { ms = dayAt(d, h, m); if (ms > end) break; res.push(ms); d += nums[0]; }
+  } else {
+    nums.filter(function (v, i) { return nums.indexOf(v) === i; }).sort(function (a, b) { return a - b; })
+      .forEach(function (dd) { ms = dayAt(dd, h, m); if (ms <= end) res.push(ms); });
+  }
+  return res;
+}
+function applyPlan(t) {
+  var times = planTimes(S.plan.days, untilMs(), S.plan.hour, S.plan.minute), added = 0;
+  times.forEach(function (ms) {
+    if (!t.revs.some(function (r) { return r.time === ms; })) { t.revs.push({ id: nextId(), time: ms, done: false }); added++; }
+  });
+  persist(true);
+  return added;
+}
+
+/* ---------- cloud sync (same format as the Android app) ---------- */
+function payload() {
+  return JSON.stringify({
+    last_modified: S.last_modified || Date.now(),
+    topics: S.topics.map(function (t) { return { id: t.id, name: t.name, revs: t.revs, expanded: !!t.expanded }; }),
+    plan_settings: { saved: S.plan.saved, days: S.plan.days, until: S.plan.until, hour: S.plan.hour, minute: S.plan.minute, auto_new: S.plan.auto_new }
+  });
+}
+function gistPatch() {
+  var files = {}; files[FILE] = { content: payload() };
+  return fetch('https://api.github.com/gists/' + S.gist, {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + S.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ files: files })
+  });
+}
+var upT;
+function uploadQuiet() {
+  if (!S.token || !S.gist) return;
+  clearTimeout(upT);
+  upT = setTimeout(function () { gistPatch().catch(function () {}); }, 500);
+}
+function fetchGist() {
+  return fetch('https://api.github.com/gists/' + S.gist, {
+    headers: { Authorization: 'Bearer ' + S.token, Accept: 'application/vnd.github+json' }
+  }).then(function (r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function (j) {
+    var f = j.files && j.files[FILE];
+    if (!f) throw new Error('Gist file not found');
+    return f.content;
+  });
+}
+function applyRemote(content, force) {
+  try {
+    var root = JSON.parse(content);
+    var remote = root.last_modified || 0, local = S.last_modified || 0;
+    if (!(force || remote >= local || local === 0)) return false;
+    if (remote > 0) S.last_modified = remote;
+    if (root.topics) {
+      S.topics = root.topics.map(function (t) {
+        return { id: t.id, name: t.name, expanded: !!t.expanded,
+          revs: (t.revs || []).map(function (r) { return { id: r.id, time: r.time, done: !!r.done }; }) };
+      });
+      var mx = 0;
+      S.topics.forEach(function (t) { mx = Math.max(mx, t.id); t.revs.forEach(function (r) { mx = Math.max(mx, r.id); }); });
+      S.next_id = Math.max(S.next_id, mx + 1);
+    }
+    if (root.plan_settings) {
+      var p = root.plan_settings;
+      S.plan = { saved: !!p.saved, days: p.days || '1,3,7,14,30', until: p.until || 0,
+        hour: p.hour == null ? 9 : p.hour, minute: p.minute == null ? 0 : p.minute, auto_new: !!p.auto_new };
+    }
+    return true;
+  } catch (e) { return false; }
+}
+function downloadQuiet() {
+  if (!S.token || !S.gist) return;
+  fetchGist().then(function (c) {
+    if (applyRemote(c, false)) { persist(false); if (!$('#mask')) render(); }
+  }).catch(function () {});
+}
+
+/* ---------- actions ---------- */
+function toggleDone(tid, rid) {
+  var t = findTopic(tid); if (!t) return;
+  t.revs.forEach(function (r) { if (r.id === rid) r.done = !r.done; });
+  persist(true);
+}
+function addTopicDialog() {
+  modal('New topic', '<input type="text" id="nt_name" placeholder="e.g. Photosynthesis" autocapitalize="sentences">', [
+    { label: 'Cancel' },
+    { label: 'Add', fn: function (m) {
+      var name = m.querySelector('#nt_name').value.trim();
+      if (!name) return false;
+      var t = { id: nextId(), name: name, revs: [], expanded: true };
+      S.topics.unshift(t);
+      if (S.plan.saved && S.plan.auto_new) applyPlan(t);
+      persist(true); tab = 'topics'; render();
+    } }
+  ]);
+}
+function addDateDialog(tid) {
+  var def = new Date(); def.setDate(def.getDate() + 1); def.setHours(S.plan.hour, S.plan.minute, 0, 0);
+  modal('Add revision date', '<input type="datetime-local" id="ad_dt" value="' + toDtInput(def.getTime()) + '">', [
+    { label: 'Cancel' },
+    { label: 'Add', fn: function (m) {
+      var v = m.querySelector('#ad_dt').value; if (!v) return false;
+      var ms = new Date(v).getTime();
+      if (!(ms > Date.now())) { toast('That time has already passed. Pick a later time.'); return false; }
+      var t = findTopic(tid); t.revs.push({ id: nextId(), time: ms, done: false });
+      persist(true); render(); toast('Revision added');
+    } }
+  ]);
+}
+function planDialog(applyTo) {
+  var body =
+    '<label>Revise after how many days?</label><input type="text" id="ap_days" value="' + esc(S.plan.days) + '" placeholder="e.g. 3  or  1,3,7,14">' +
+    '<p class="hint">One number repeats every that many days (3 = every 3 days). Several numbers separated by commas revise after exactly those many days (1,3,7 = after 1, 3 and 7 days).</p>' +
+    '<label>Until</label><input type="date" id="ap_until" value="' + toDateInput(untilMs()) + '">' +
+    '<label>Time</label><input type="time" id="ap_time" value="' + pad(S.plan.hour) + ':' + pad(S.plan.minute) + '">' +
+    '<label class="chk"><input type="checkbox" id="ap_auto"' + (S.plan.auto_new ? ' checked' : '') + '> Apply automatically to every new topic</label>';
+  function save(m) {
+    var nums = parseDays(m.querySelector('#ap_days').value);
+    if (!nums.length) { toast('Enter at least one number of days.'); return false; }
+    var tm = (m.querySelector('#ap_time').value || '09:00').split(':');
+    var un = m.querySelector('#ap_until').value;
+    S.plan = { saved: true, days: nums.join(','), until: un ? fromDateInput(un) : 0, hour: +tm[0], minute: +tm[1], auto_new: m.querySelector('#ap_auto').checked };
+    persist(true);
+    return true;
+  }
+  modal('Auto plan settings', body, [
+    { label: 'Cancel' },
+    { label: 'Save & apply to all', fn: function (m) {
+      if (!save(m)) return false;
+      var n = 0; S.topics.forEach(function (t) { n += applyPlan(t); });
+      render(); toast(n + ' revisions added');
+    } },
+    { label: applyTo ? 'Save & apply' : 'Save', fn: function (m) {
+      if (!save(m)) return false;
+      if (applyTo) { toast(applyPlan(applyTo) + ' revisions added'); } else { toast('Auto plan saved'); }
+      render();
+    } }
+  ]);
+}
+function syncDialog() {
+  var body =
+    '<label>GitHub Token</label><input type="password" id="sy_tok" value="' + esc(S.token) + '" placeholder="GitHub Personal Access Token" autocomplete="off">' +
+    '<label>Gist ID</label><input type="text" id="sy_gist" value="' + esc(S.gist) + '" placeholder="Secret Gist ID" autocomplete="off" autocapitalize="off">' +
+    '<p class="hint">Use the same token and Gist ID as your Android app and they stay in sync. Changes upload automatically, and opening this page fetches updates. The token is saved only in this browser.</p>';
+  function grab(m) { S.token = m.querySelector('#sy_tok').value.trim(); S.gist = m.querySelector('#sy_gist').value.trim(); persist(false); }
+  modal('Cloud Sync Settings', body, [
+    { label: 'Save', fn: function (m) { grab(m); toast('Sync settings saved'); } },
+    { label: 'Backup Now', fn: function (m) {
+      grab(m);
+      if (!S.token) { toast('GitHub Token is missing'); return; }
+      if (!S.gist) { toast('Gist ID is missing'); return; }
+      gistPatch().then(function (r) { toast(r.ok ? 'Successfully backed up everything to Gist!' : 'Upload failed: HTTP ' + r.status); })
+        .catch(function (e) { toast('Error: ' + e.message); });
+    } },
+    { label: 'Restore', fn: function (m) {
+      grab(m);
+      if (!S.token) { toast('GitHub Token is missing'); return; }
+      if (!S.gist) { toast('Gist ID is missing'); return; }
+      fetchGist().then(function (c) {
+        if (applyRemote(c, true)) { persist(false); render(); toast('Successfully restored everything from Gist!'); }
+        else toast('Failed to parse Gist content');
+      }).catch(function (e) { toast('Error: ' + e.message); });
+    } }
+  ]);
+}
+function confirmDelete(tid) {
+  var t = findTopic(tid);
+  modal('Delete "' + t.name + '"?', '<p class="hint" style="font-size:14px">Its revision dates will be removed.</p>', [
+    { label: 'Cancel' },
+    { label: 'Delete', fn: function () {
+      S.topics = S.topics.filter(function (x) { return x.id !== tid; });
+      persist(true); render();
+    } }
+  ]);
+}
+function showDay(day) {
+  lastDay = day;
+  var items = [];
+  S.topics.forEach(function (t) {
+    t.revs.forEach(function (r) {
+      var d = new Date(r.time);
+      if (d.getFullYear() === calY && d.getMonth() === calM && d.getDate() === day) items.push([t, r]);
+    });
+  });
+  items.sort(function (a, b) { return a[1].time - b[1].time; });
+  var body = items.length ? '' : '<p class="hint" style="font-size:14px">No revisions on this day.</p>';
+  items.forEach(function (it) {
+    var t = it[0], r = it[1];
+    body += '<div class="drow' + (r.done ? ' done' : '') + '"><span class="lbl">' + (r.done ? '✓ ' : '') + fmtTime(r.time) + '&nbsp;&nbsp; ' + esc(t.name) +
+      '</span><button class="btn sm' + (r.done ? '' : ' green') + '" data-a="dayDone" data-t="' + t.id + '" data-r="' + r.id + '">' + (r.done ? 'Undo' : 'Done') + '</button></div>';
+  });
+  modal(new Date(calY, calM, day).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }), body, [{ label: 'Close' }]);
+}
+
+/* ---------- modal ---------- */
+function closeModal() { var m = $('#mask'); if (m) m.remove(); }
+function modal(title, bodyHtml, btns) {
+  closeModal();
+  var m = document.createElement('div'); m.className = 'mask'; m.id = 'mask';
+  m.innerHTML = '<div class="dlg"><h3>' + esc(title) + '</h3><div>' + bodyHtml + '</div><div class="dbtns"></div></div>';
+  var bx = m.querySelector('.dbtns');
+  btns.forEach(function (b) {
+    var e = document.createElement('button'); e.className = 'tbtn'; e.textContent = b.label;
+    e.onclick = function () { if (b.fn && b.fn(m) === false) return; closeModal(); };
+    bx.appendChild(e);
+  });
+  m.addEventListener('click', function (e) { if (e.target === m) closeModal(); });
+  document.body.appendChild(m);
+  return m;
+}
+
+/* ---------- views ---------- */
+function viewToday() {
+  var s0 = startOfDay(Date.now()), s1 = startOfDay(s0 + 90000000);
+  var over = [], tod = [];
+  S.topics.forEach(function (t) {
+    t.revs.forEach(function (r) {
+      if (!r.done && r.time < s0) over.push([t, r]);
+      else if (r.time >= s0 && r.time < s1) tod.push([t, r]);
+    });
+  });
+  over.sort(function (a, b) { return a[1].time - b[1].time; });
+  tod.sort(function (a, b) { return (a[1].done - b[1].done) || (a[1].time - b[1].time); });
+  function item(p, overdue) {
+    var t = p[0], r = p[1], passed = !r.done && r.time < Date.now();
+    var cls = r.done ? 'ok' : (overdue || passed ? 'over' : 'today');
+    var txt = r.done ? 'Done · ' + fmtTime(r.time) : overdue ? 'Overdue · ' + fmtShort(r.time) : (passed ? 'Was due at ' : 'At ') + fmtTime(r.time);
+    return '<div class="item' + (r.done ? ' done' : '') + '"><span class="dot" style="background:' + col(t) + '"></span>' +
+      '<div class="grow"><div class="ititle">' + esc(t.name) + '</div><div class="isub ' + cls + '">' + txt + '</div></div>' +
+      '<button class="btn sm' + (r.done ? '' : ' green') + '" data-a="done" data-t="' + t.id + '" data-r="' + r.id + '">' + (r.done ? 'Undo' : '✓ Done') + '</button></div>';
+  }
+  var h = '';
+  if (over.length) h += '<div class="group">Overdue</div>' + over.map(function (p) { return item(p, true); }).join('');
+  if (tod.length) h += '<div class="group">Today</div>' + tod.map(function (p) { return item(p, false); }).join('');
+  if (!h) h = '<div class="empty">Nothing to revise today.<br>Add topics in the Topics tab.</div>';
+  return h;
+}
+function viewTopics() {
+  var h = '<div class="stack"><div class="row"><button class="btn accent" data-a="addTopic">+ Add topic</button>' +
+    '<button class="btn" data-a="plan">Auto plan settings</button></div><button class="btn" data-a="sync">Cloud Sync</button></div>';
+  if (!S.topics.length) h += '<div class="empty">No topics yet.<br>Tap "+ Add topic" to start.</div>';
+  var now = Date.now();
+  S.topics.forEach(function (t) {
+    var up = 0, dn = 0;
+    t.revs.forEach(function (r) { if (r.done) dn++; else if (r.time > now) up++; });
+    h += '<div class="card' + (t.expanded ? ' open' : '') + '"><div class="head" data-a="expand" data-t="' + t.id + '">' +
+      '<span class="dot" style="background:' + col(t) + '"></span><div class="grow tname">' + esc(t.name) + '</div>' +
+      (!t.expanded && up > 0 ? '<span class="small">' + up + ' upcoming</span>' : '') +
+      '<button class="btn sm" data-a="expand" data-t="' + t.id + '">' + (t.expanded ? '▲' : '▼') + '</button></div>';
+    if (t.expanded) {
+      h += '<div class="small" style="padding:2px 0 8px 21px">' + up + ' upcoming  ·  ' + dn + ' done</div>';
+      if (!t.revs.length) h += '<div class="small" style="padding:4px 0 8px 21px;font-size:14px">No revision dates yet</div>';
+      t.revs.slice().sort(function (a, b) { return a.time - b.time; }).forEach(function (r) {
+        var over = !r.done && r.time < now;
+        h += '<div class="rev' + (r.done ? ' done' : '') + (over ? ' over' : '') + '"><span class="lbl">' + (r.done ? '✓  ' : '•  ') + fmtFull(r.time) + '</span>' +
+          '<button class="btn sm' + (r.done ? '' : ' green') + '" data-a="done" data-t="' + t.id + '" data-r="' + r.id + '">' + (r.done ? 'Undo' : 'Done') + '</button>' +
+          '<button class="btn sm" data-a="delRev" data-t="' + t.id + '" data-r="' + r.id + '">✕</button></div>';
+      });
+      h += '<div class="actions"><button class="btn sm" data-a="addDate" data-t="' + t.id + '">+ Add date</button>' +
+        '<button class="btn sm" data-a="autoPlan" data-t="' + t.id + '">Auto plan</button>' +
+        '<button class="btn sm red" data-a="delTopic" data-t="' + t.id + '">Delete</button></div>';
+    }
+    h += '</div>';
+  });
+  return h + '<div style="height:12px"></div>';
+}
+function viewCal() {
+  var first = new Date(calY, calM, 1);
+  var offset = first.getDay(), dim = new Date(calY, calM + 1, 0).getDate();
+  var rows = Math.ceil((offset + dim) / 7);
+  var ev = {};
+  S.topics.forEach(function (t) {
+    t.revs.forEach(function (r) {
+      var d = new Date(r.time);
+      if (d.getFullYear() === calY && d.getMonth() === calM) (ev[d.getDate()] = ev[d.getDate()] || []).push([t, r]);
+    });
+  });
+  var td = new Date(), isThis = td.getFullYear() === calY && td.getMonth() === calM;
+  var h = '<div class="cal-head"><button class="btn sm" data-a="prev">‹</button><div class="title">' +
+    first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + '</div>' +
+    '<button class="btn sm" data-a="next">›</button><button class="btn sm" data-a="thisMonth">Today</button></div>';
+  h += '<div class="cal-week">' + ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(function (d) { return '<div>' + d + '</div>'; }).join('') + '</div><div class="cal-grid">';
+  for (var i = 0; i < rows * 7; i++) {
+    var day = i - offset + 1, inM = day >= 1 && day <= dim;
+    if (!inM) { h += '<div class="cell out"></div>'; continue; }
+    var list = (ev[day] || []).sort(function (a, b) { return a[1].time - b[1].time; });
+    var max = list.length > 3 ? 2 : 3;
+    h += '<div class="cell' + (isThis && td.getDate() === day ? ' today' : '') + '" data-a="day" data-d="' + day + '"><div class="n">' + day + '</div>';
+    list.slice(0, max).forEach(function (p) {
+      h += '<div class="chip' + (p[1].done ? ' done' : '') + '" style="background:' + (p[1].done ? '#334155' : col(p[0])) + '">' + esc(p[0].name) + '</div>';
+    });
+    if (list.length > max) h += '<div class="more">+' + (list.length - max) + ' more</div>';
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+function render() {
+  var now = Date.now(), up = 0;
+  S.topics.forEach(function (t) { t.revs.forEach(function (r) { if (!r.done && r.time > now) up++; }); });
+  $('#sub').textContent = S.topics.length + ' topics  ·  ' + up + ' upcoming';
+  document.querySelectorAll('.tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === tab); });
+  var m = $('#main'), y = m.scrollTop;
+  m.innerHTML = tab === 'today' ? viewToday() : tab === 'topics' ? viewTopics() : viewCal();
+  m.scrollTop = y;
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('[data-a]'); if (!el) return;
+  var a = el.getAttribute('data-a'), tid = +el.getAttribute('data-t'), rid = +el.getAttribute('data-r');
+  if (a === 'tab') { tab = el.getAttribute('data-tab'); $('#main').scrollTop = 0; render(); }
+  else if (a === 'addTopic') addTopicDialog();
+  else if (a === 'plan') planDialog(null);
+  else if (a === 'sync') syncDialog();
+  else if (a === 'expand') { var t = findTopic(tid); t.expanded = !t.expanded; persist(true); render(); }
+  else if (a === 'done') { toggleDone(tid, rid); render(); }
+  else if (a === 'delRev') { var tt = findTopic(tid); tt.revs = tt.revs.filter(function (r) { return r.id !== rid; }); persist(true); render(); }
+  else if (a === 'addDate') addDateDialog(tid);
+  else if (a === 'autoPlan') {
+    var t2 = findTopic(tid);
+    if (!S.plan.saved) planDialog(t2);
+    else { var n = applyPlan(t2); render(); toast(n ? n + ' revisions added' : 'No new dates added. Check the end date in Auto plan settings.'); }
+  }
+  else if (a === 'delTopic') confirmDelete(tid);
+  else if (a === 'prev') { calM--; if (calM < 0) { calM = 11; calY--; } render(); }
+  else if (a === 'next') { calM++; if (calM > 11) { calM = 0; calY++; } render(); }
+  else if (a === 'thisMonth') { var n2 = new Date(); calY = n2.getFullYear(); calM = n2.getMonth(); render(); }
+  else if (a === 'day') showDay(+el.getAttribute('data-d'));
+  else if (a === 'dayDone') { toggleDone(tid, rid); closeModal(); render(); showDay(lastDay); }
+});
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { render(); downloadQuiet(); } });
+
+render();
+downloadQuiet();
+</script>
+</body>
+</html>
